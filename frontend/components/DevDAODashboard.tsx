@@ -36,74 +36,7 @@ const categories = [
   "Protocol Tooling",
 ];
 
-const demoEvaluation: AIEvaluation = {
-  feasibility: 9,
-  impact: 9,
-  technical_risk: 7,
-  budget: 8,
-  overall_score: 8.4,
-  recommendation: "APPROVE",
-  reasoning:
-    "The scope is focused, the repository target is clear, and the requested funding is reasonable for a developer-facing deliverable.",
-  validator_agreement: "4/5 validators agree",
-};
-
-const demoProposals: Proposal[] = [
-  {
-    id: 3,
-    title: "Build a Rust SDK for GenLayer",
-    description:
-      "Create a typed Rust SDK with contract calls, wallet helpers, examples, and CI-backed integration tests for backend developers building on GenLayer.",
-    category: "SDK",
-    requested_funding: 500,
-    repository_url: "https://github.com/devdao/genlayer-rust-sdk",
-    proposer: "0x8f6C2e6aD27eB470Bf36461F2d3a3B54e09Aa91",
-    created_at: "3",
-    status: "APPROVED",
-    yes_votes: 11,
-    no_votes: 4,
-    ai_evaluation: demoEvaluation,
-  },
-  {
-    id: 2,
-    title: "Improve intelligent contract examples",
-    description:
-      "Add concise examples for nondeterministic execution, validator prompts, structured response validation, and frontend reads from deployed contracts.",
-    category: "Documentation",
-    requested_funding: 300,
-    repository_url: "https://github.com/devdao/genlayer-examples",
-    proposer: "0x42a660c2383e80987B3F93574151F5f348E73D6",
-    created_at: "2",
-    status: "ACTIVE",
-    yes_votes: 7,
-    no_votes: 2,
-    ai_evaluation: { ...demoEvaluation, overall_score: 8.1, feasibility: 8, budget: 9 },
-  },
-  {
-    id: 1,
-    title: "Security review starter kit",
-    description:
-      "Build a small checklist, template repository, and test harness that helps teams review GenLayer contracts before deployment.",
-    category: "Security Review",
-    requested_funding: 450,
-    repository_url: "https://github.com/devdao/security-review-kit",
-    proposer: "0x17788A7aD8A092C90248d4620552A88b8c52C10",
-    created_at: "1",
-    status: "ACTIVE",
-    yes_votes: 5,
-    no_votes: 5,
-    ai_evaluation: {
-      ...demoEvaluation,
-      feasibility: 7,
-      impact: 8,
-      technical_risk: 6,
-      budget: 7,
-      overall_score: 7.2,
-      recommendation: "APPROVE",
-      validator_agreement: "3/5 validators agree",
-    },
-  },
-];
+// Removed hardcoded demo data: the UI will show an empty state when the contract isn't configured.
 
 const emptyForm: ProposalInput = {
   title: "",
@@ -353,14 +286,11 @@ export function DevDAODashboard() {
   const { contractConfigured, proposals, isLoadingProposals, memberCount, createProposal, vote } = useDevDAO();
   const [view, setView] = useState<View>("dashboard");
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [demoItems, setDemoItems] = useState<Proposal[]>(demoProposals);
+  // No demo items: when the contract isn't configured we show an empty state.
   const [form, setForm] = useState<ProposalInput>(emptyForm);
 
-  const items = contractConfigured ? proposals : demoItems;
-  const selectedProposal = useMemo(
-    () => items.find((proposal) => proposal.id === selectedId) ?? items[0],
-    [items, selectedId],
-  );
+  const items = contractConfigured ? proposals : [];
+  const selectedProposal = useMemo(() => items.find((p) => p.id === selectedId) ?? items[0], [items, selectedId]);
   const activeCount = items.filter((proposal) => proposal.status === "ACTIVE").length;
   const completedCount = items.length - activeCount;
   const displayedMembers = contractConfigured ? memberCount : 128;
@@ -374,26 +304,8 @@ export function DevDAODashboard() {
     event.preventDefault();
 
     if (!contractConfigured) {
-      const proposal: Proposal = {
-        id: demoItems.length + 1,
-        title: form.title.trim(),
-        description: form.description.trim(),
-        category: form.category,
-        requested_funding: Number(form.requested_funding),
-        repository_url: form.repository_url.trim(),
-        proposer: address ?? "0xDemo000000000000000000000000000000000000",
-        created_at: String(demoItems.length + 1),
-        status: "ACTIVE",
-        yes_votes: 0,
-        no_votes: 0,
-        ai_evaluation: demoEvaluation,
-      };
-      setDemoItems((current) => [proposal, ...current]);
-      setSelectedId(proposal.id);
-      setForm(emptyForm);
-      setView("details");
-      toast.info("Demo proposal created", {
-        description: "Set NEXT_PUBLIC_CONTRACT_ADDRESS to submit through GenLayer.",
+      toast.error("Contract not configured", {
+        description: "Set NEXT_PUBLIC_CONTRACT_ADDRESS to enable creating proposals.",
       });
       return;
     }
@@ -410,18 +322,8 @@ export function DevDAODashboard() {
     if (!selectedProposal) return;
 
     if (!contractConfigured) {
-      setDemoItems((current) =>
-        current.map((proposal) => {
-          if (proposal.id !== selectedProposal.id || proposal.status !== "ACTIVE") return proposal;
-          const yes_votes = proposal.yes_votes + (choice === "YES" ? 1 : 0);
-          const no_votes = proposal.no_votes + (choice === "NO" ? 1 : 0);
-          const status =
-            yes_votes + no_votes >= 3 ? (yes_votes > no_votes ? "APPROVED" : "REJECTED") : "ACTIVE";
-          return { ...proposal, yes_votes, no_votes, status };
-        }),
-      );
-      toast.info("Demo vote recorded", {
-        description: "Set NEXT_PUBLIC_CONTRACT_ADDRESS to vote through GenLayer.",
+      toast.error("Contract not configured", {
+        description: "Set NEXT_PUBLIC_CONTRACT_ADDRESS to enable voting.",
       });
       return;
     }
