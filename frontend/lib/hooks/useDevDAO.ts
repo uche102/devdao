@@ -29,7 +29,9 @@ function handleMutationError(err: Error, title: string) {
     userRejected("Transaction cancelled");
     return;
   }
-  error(title, { description: message || "Please check your wallet and try again." });
+  error(title, {
+    description: message || "Please check your wallet and try again.",
+  });
 }
 
 export function useDevDAO() {
@@ -57,13 +59,17 @@ export function useDevDAO() {
     mutationFn: async (input: ProposalInput) => {
       if (!contract) {
         configError(
-          "Demo mode",
+          "Contract not configured",
           "Set NEXT_PUBLIC_CONTRACT_ADDRESS to submit proposals to GenLayer.",
         );
         throw new Error("Contract not configured.");
       }
-      if (!address) throw new Error("Connect your wallet before submitting a proposal.");
-      const feePreset = await contract.estimateCreateProposalFees(input, "standard");
+      if (!address)
+        throw new Error("Connect your wallet before submitting a proposal.");
+      const feePreset = await contract.estimateCreateProposalFees(
+        input,
+        "standard",
+      );
       return contract.createProposal(input, feePreset);
     },
     onSuccess: () => {
@@ -72,22 +78,38 @@ export function useDevDAO() {
         description: "GenLayer validators evaluated and stored the proposal.",
       });
     },
-    onError: (err) => handleMutationError(err as Error, "Proposal submission failed"),
+    onError: (err) =>
+      handleMutationError(err as Error, "Proposal submission failed"),
   });
 
   const vote = useMutation({
-    mutationFn: async ({ proposalId, choice }: { proposalId: number; choice: VoteChoice }) => {
+    mutationFn: async ({
+      proposalId,
+      choice,
+    }: {
+      proposalId: number;
+      choice: VoteChoice;
+    }) => {
       if (!contract) {
-        configError("Demo mode", "Set NEXT_PUBLIC_CONTRACT_ADDRESS to vote on GenLayer.");
+        configError(
+          "Contract not configured",
+          "Set NEXT_PUBLIC_CONTRACT_ADDRESS to vote on GenLayer.",
+        );
         throw new Error("Contract not configured.");
       }
       if (!address) throw new Error("Connect your wallet before voting.");
-      const feePreset = await contract.estimateVoteFees(proposalId, choice, "standard");
+      const feePreset = await contract.estimateVoteFees(
+        proposalId,
+        choice,
+        "standard",
+      );
       return contract.vote(proposalId, choice, feePreset);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devdao"] });
-      success("Vote recorded", { description: "Your DAO vote was written to GenLayer." });
+      success("Vote recorded", {
+        description: "Your DAO vote was written to GenLayer.",
+      });
     },
     onError: (err) => handleMutationError(err as Error, "Vote failed"),
   });

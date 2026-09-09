@@ -88,7 +88,7 @@ npm run build
 
 ## Run Frontend Locally
 
-Without a deployed contract, the frontend runs in labeled demo mode:
+Start the frontend with the configured contract address:
 
 ```shell
 cd frontend
@@ -97,7 +97,7 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-With a deployed contract, create `frontend/.env.local`:
+Create `frontend/.env.local` with your live contract address:
 
 ```shell
 NEXT_PUBLIC_CONTRACT_ADDRESS=0x...
