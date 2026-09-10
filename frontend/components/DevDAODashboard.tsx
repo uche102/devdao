@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Brain,
   CheckCircle2,
@@ -58,6 +58,43 @@ function votePercent(proposal: Proposal) {
   return Math.round((proposal.yes_votes / total) * 100);
 }
 
+function getVotingDeadlineMs(deadline: string) {
+  const value = Number(deadline);
+  if (!Number.isFinite(value)) return null;
+  return value * 1000;
+}
+
+function formatVotingCountdown(deadline: string, now = Date.now()) {
+  const deadlineMs = getVotingDeadlineMs(deadline);
+  if (deadlineMs === null) return "No deadline";
+
+  const diffMs = deadlineMs - now;
+  if (diffMs <= 0) return "Voting closed";
+
+  const totalSeconds = Math.max(0, Math.floor(diffMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) return `${hours}h ${minutes}m left`;
+  if (minutes > 0) return `${minutes}m ${seconds}s left`;
+  return `${seconds}s left`;
+}
+
+function useVotingCountdown(deadline: string) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const update = () => setNow(Date.now());
+    update();
+
+    const interval = window.setInterval(update, 30000);
+    return () => window.clearInterval(interval);
+  }, [deadline]);
+
+  return formatVotingCountdown(deadline, now);
+}
+
 function statusTone(status: ProposalStatus) {
   if (status === "APPROVED")
     return "border-emerald-400/40 bg-emerald-400/10 text-emerald-200";
@@ -100,6 +137,7 @@ function ProposalCard({
   onOpen: () => void;
 }) {
   const yesPercent = votePercent(proposal);
+  const votingCountdown = useVotingCountdown(proposal.voting_deadline);
 
   return (
     <article className="rounded-lg border border-white/10 bg-zinc-950/70 p-4">
@@ -146,6 +184,11 @@ function ProposalCard({
           className="h-2 rounded-full bg-emerald-400"
           style={{ width: `${yesPercent}%` }}
         />
+      </div>
+
+      <div className="mt-4 flex items-center justify-between rounded-md border border-white/10 bg-black/30 px-3 py-2 text-xs text-zinc-300">
+        <span>Voting ends</span>
+        <span className="font-medium text-cyan-200">{votingCountdown}</span>
       </div>
     </article>
   );
@@ -224,6 +267,7 @@ function ProposalDetails({
 }) {
   const yesPercent = votePercent(proposal);
   const noPercent = 100 - yesPercent;
+  const votingCountdown = useVotingCountdown(proposal.voting_deadline);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -269,6 +313,11 @@ function ProposalDetails({
                 Open repo
               </a>
             </div>
+          </div>
+
+          <div className="mt-6 flex items-center justify-between rounded-md border border-cyan-400/20 bg-cyan-950/20 px-3 py-2 text-sm text-cyan-100">
+            <span className="text-cyan-200">Voting window</span>
+            <span className="font-medium">{votingCountdown}</span>
           </div>
         </section>
 

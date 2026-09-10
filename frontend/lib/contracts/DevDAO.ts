@@ -51,6 +51,7 @@ function normalizeProposal(value: any): Proposal {
     repository_url: String(data.repository_url ?? data.repositoryUrl ?? ""),
     proposer: toAddress(data.proposer),
     created_at: String(data.created_at ?? data.createdAt ?? ""),
+    voting_deadline: String(data.voting_deadline ?? data.votingDeadline ?? ""),
     status: data.status === "APPROVED" || data.status === "REJECTED" ? data.status : "ACTIVE",
     yes_votes: Number(data.yes_votes ?? data.yesVotes ?? 0),
     no_votes: Number(data.no_votes ?? data.noVotes ?? 0),

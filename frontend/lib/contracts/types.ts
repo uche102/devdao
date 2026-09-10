@@ -110,6 +110,7 @@ export interface Proposal {
   repository_url: string;
   proposer: string;
   created_at: string;
+  voting_deadline: string;
   status: ProposalStatus;
   yes_votes: number;
   no_votes: number;
