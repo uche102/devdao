@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { useEffect } from "react";
 import {
   Brain,
   CheckCircle2,
@@ -61,16 +62,8 @@ function votePercent(proposal: Proposal) {
 function formatRemainingTime(proposal: Proposal) {
   const deadlineStr =
     proposal.voting_deadline ?? (proposal as any).votingDeadline ?? "";
-  const deadline = Number(deadlineStr || 0);
-  if (!deadline) return "";
-  const secsLeft = Math.max(0, deadline - Math.floor(Date.now() / 1000));
-  if (secsLeft === 0) return "Expired";
-  const h = Math.floor(secsLeft / 3600);
-  const m = Math.floor((secsLeft % 3600) / 60);
-  const s = secsLeft % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
+  const deadline = Number(deadlineStr) || 0;
+  return formatRemainingTimeValue(deadline);
 }
 
 function statusTone(status: ProposalStatus) {
@@ -107,6 +100,36 @@ function StatCard({
   );
 }
 
+function formatRemainingTimeValue(deadline: number) {
+  if (!deadline) return "";
+  const secsLeft = Math.max(0, deadline - Math.floor(Date.now() / 1000));
+  if (secsLeft === 0) return "Expired";
+  const h = Math.floor(secsLeft / 3600);
+  const m = Math.floor((secsLeft % 3600) / 60);
+  const s = secsLeft % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function useRemainingTime(deadlineStr?: string) {
+  const [label, setLabel] = useState("");
+  useEffect(() => {
+    const d = Number(deadlineStr ?? 0) || 0;
+    if (!d) {
+      setLabel("");
+      return;
+    }
+    function tick() {
+      setLabel(formatRemainingTimeValue(d));
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [deadlineStr]);
+  return label;
+}
+
 function ProposalCard({
   proposal,
   onOpen,
@@ -115,6 +138,7 @@ function ProposalCard({
   onOpen: () => void;
 }) {
   const yesPercent = votePercent(proposal);
+  const remaining = useRemainingTime(proposal.voting_deadline);
 
   return (
     <article className="rounded-lg border border-white/10 bg-zinc-950/70 p-4">
@@ -135,7 +159,7 @@ function ProposalCard({
                 variant="outline"
                 className="border-white/15 text-zinc-300"
               >
-                {formatRemainingTime(proposal)}
+                {remaining}
               </Badge>
             )}
           </div>
@@ -247,6 +271,7 @@ function ProposalDetails({
 }) {
   const yesPercent = votePercent(proposal);
   const noPercent = 100 - yesPercent;
+  const remaining = useRemainingTime(proposal.voting_deadline);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -306,9 +331,7 @@ function ProposalDetails({
         <div className="mt-5 space-y-4">
           <div className="mb-2">
             <p className="text-sm text-zinc-400">Time left to vote</p>
-            <p className="font-medium text-zinc-100">
-              {formatRemainingTime(proposal)}
-            </p>
+            <p className="font-medium text-zinc-100">{remaining}</p>
           </div>
           <div>
             <div className="flex justify-between text-sm text-zinc-300">
