@@ -8,7 +8,13 @@ import {
   type FeePresetEstimate,
   type FeePresetLevel,
 } from "../genlayer/fees";
-import type { AIEvaluation, Proposal, ProposalInput, TransactionReceipt, VoteChoice } from "./types";
+import type {
+  AIEvaluation,
+  Proposal,
+  ProposalInput,
+  TransactionReceipt,
+  VoteChoice,
+} from "./types";
 
 function toObject(value: any): Record<string, any> {
   if (!value) return {};
@@ -36,7 +42,9 @@ function normalizeEvaluation(value: any): AIEvaluation {
     overall_score: Number(data.overall_score ?? data.overallScore ?? 0),
     recommendation: data.recommendation === "REJECT" ? "REJECT" : "APPROVE",
     reasoning: String(data.reasoning ?? ""),
-    validator_agreement: String(data.validator_agreement ?? data.validatorAgreement ?? ""),
+    validator_agreement: String(
+      data.validator_agreement ?? data.validatorAgreement ?? "",
+    ),
   };
 }
 
@@ -47,12 +55,17 @@ function normalizeProposal(value: any): Proposal {
     title: String(data.title ?? ""),
     description: String(data.description ?? ""),
     category: String(data.category ?? ""),
-    requested_funding: Number(data.requested_funding ?? data.requestedFunding ?? 0),
+    requested_funding: Number(
+      data.requested_funding ?? data.requestedFunding ?? 0,
+    ),
     repository_url: String(data.repository_url ?? data.repositoryUrl ?? ""),
     proposer: toAddress(data.proposer),
     created_at: String(data.created_at ?? data.createdAt ?? ""),
     voting_deadline: String(data.voting_deadline ?? data.votingDeadline ?? ""),
-    status: data.status === "APPROVED" || data.status === "REJECTED" ? data.status : "ACTIVE",
+    status:
+      data.status === "APPROVED" || data.status === "REJECTED"
+        ? data.status
+        : "ACTIVE",
     yes_votes: Number(data.yes_votes ?? data.yesVotes ?? 0),
     no_votes: Number(data.no_votes ?? data.noVotes ?? 0),
     ai_evaluation: normalizeEvaluation(data.ai_evaluation ?? data.aiEvaluation),
@@ -63,7 +76,11 @@ class DevDAO {
   private contractAddress: `0x${string}`;
   private client: any;
 
-  constructor(contractAddress: string, address?: string | null, studioUrl?: string) {
+  constructor(
+    contractAddress: string,
+    address?: string | null,
+    studioUrl?: string,
+  ) {
     this.contractAddress = contractAddress as `0x${string}`;
     const config: any = { chain: studionet };
     if (address) config.account = address as `0x${string}`;
@@ -79,10 +96,14 @@ class DevDAO {
     });
 
     if (result instanceof Map) {
-      return Array.from(result.values()).map(normalizeProposal).sort((a, b) => b.id - a.id);
+      return Array.from(result.values())
+        .map(normalizeProposal)
+        .sort((a, b) => b.id - a.id);
     }
 
-    return Object.values(toObject(result)).map(normalizeProposal).sort((a, b) => b.id - a.id);
+    return Object.values(toObject(result))
+      .map(normalizeProposal)
+      .sort((a, b) => b.id - a.id);
   }
 
   async getProposal(id: number): Promise<Proposal> {
@@ -142,7 +163,10 @@ class DevDAO {
     );
   }
 
-  async createProposal(input: ProposalInput, feePreset?: FeePresetEstimate): Promise<TransactionReceipt> {
+  async createProposal(
+    input: ProposalInput,
+    feePreset?: FeePresetEstimate,
+  ): Promise<TransactionReceipt> {
     const fees = feePresetToTransactionFees(feePreset);
     const txHash = await this.client.writeContract({
       address: this.contractAddress,
@@ -166,7 +190,11 @@ class DevDAO {
     }) as Promise<TransactionReceipt>;
   }
 
-  async vote(proposalId: number, choice: VoteChoice, feePreset?: FeePresetEstimate): Promise<TransactionReceipt> {
+  async vote(
+    proposalId: number,
+    choice: VoteChoice,
+    feePreset?: FeePresetEstimate,
+  ): Promise<TransactionReceipt> {
     const fees = feePresetToTransactionFees(feePreset);
     const txHash = await this.client.writeContract({
       address: this.contractAddress,
