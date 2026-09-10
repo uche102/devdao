@@ -1,4 +1,5 @@
 import json
+import time
 
 from tests.direct.conftest import to_hex
 
@@ -102,6 +103,20 @@ def test_invalid_votes_are_rejected(direct_vm, direct_deploy, direct_alice):
 
     with direct_vm.expect_revert("Invalid vote"):
         contract.vote(proposal_id, "MAYBE")
+
+
+def test_voting_expired_after_one_hour(direct_vm, direct_deploy, direct_alice):
+    contract = deploy_contract(direct_vm, direct_deploy)
+    direct_vm.sender = direct_alice
+    proposal_id = create_sample_proposal(contract)
+
+    original_time = time.time
+    time.time = lambda: original_time() + 3601
+    try:
+        with direct_vm.expect_revert("Voting period expired"):
+            contract.vote(proposal_id, "YES")
+    finally:
+        time.time = original_time
 
 
 def test_duplicate_vote_is_rejected(direct_vm, direct_deploy, direct_alice):

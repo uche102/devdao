@@ -1,6 +1,7 @@
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 
 import json
+import time
 from dataclasses import dataclass
 from genlayer import *
 import genlayer.gl.vm as glvm
@@ -9,6 +10,7 @@ import genlayer.gl.vm as glvm
 VALID_RECOMMENDATIONS = {"APPROVE", "REJECT"}
 VALID_VOTES = {"YES", "NO"}
 QUORUM = 3
+VOTING_WINDOW_SECONDS = 3600
 
 
 @allow_storage
@@ -35,6 +37,7 @@ class Proposal:
     repository_url: str
     proposer: Address
     created_at: str
+    voting_deadline: str
     status: str
     yes_votes: u256
     no_votes: u256
@@ -208,7 +211,12 @@ Rules:
     def _refresh_status(self, proposal_id: int) -> None:
         proposal = self.proposals[proposal_id]
         total_votes = proposal.yes_votes + proposal.no_votes
-        if total_votes < QUORUM:
+        if int(time.time()) >= int(proposal.voting_deadline):
+            if proposal.yes_votes > proposal.no_votes:
+                proposal.status = "APPROVED"
+            else:
+                proposal.status = "REJECTED"
+        elif total_votes < QUORUM:
             proposal.status = "ACTIVE"
         elif proposal.yes_votes > proposal.no_votes:
             proposal.status = "APPROVED"
@@ -246,6 +254,7 @@ Rules:
             proposer,
         )
 
+        now = int(time.time())
         self.proposals[proposal_id] = Proposal(
             id=proposal_id,
             title=title.strip(),
@@ -254,7 +263,8 @@ Rules:
             requested_funding=requested_funding,
             repository_url=repository_url.strip(),
             proposer=proposer,
-            created_at=str(proposal_id),
+            created_at=str(now),
+            voting_deadline=str(now + VOTING_WINDOW_SECONDS),
             status="ACTIVE",
             yes_votes=0,
             no_votes=0,
@@ -269,12 +279,15 @@ Rules:
         if choice not in VALID_VOTES:
             raise glvm.UserError("Invalid vote")
 
+        proposal = self.proposals[proposal_id]
+        if int(time.time()) >= int(proposal.voting_deadline):
+            raise glvm.UserError("Voting period expired")
+
         voter = gl.message.sender_address
         vote_key = self._vote_key(proposal_id, voter)
         if vote_key in self.votes:
             raise glvm.UserError("Already voted")
 
-        proposal = self.proposals[proposal_id]
         self.members[voter] = True
         self.votes[vote_key] = choice
         if choice == "YES":
